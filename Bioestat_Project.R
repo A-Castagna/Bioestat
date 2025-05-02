@@ -1,236 +1,344 @@
-# Definir o caminho do arquivo 
-caminho_arquivo <- "C:/Users/borbo/OneDrive/Área de Trabalho/dengue-dataset.csv"
+# Trabalho Final de Bioestatística
 
-# Ler o arquivo CSV
+
+# Instalando Pacotes
+install.packages("dplyr")
+install.packages("lubridate")
+install.packages("ggplot2")
+install.packages("MASS")
+install.packages("FSA")
+install.packages("tidyr")
+install.packages("scales")
+install.packages("car")
+install.packages("RVAideMemoire")
+install.packages("ggpubr")
+install.packages("ggeffects")
+install.packages("psych")
+install.packages("gt")
+
+# Adicionando banco de dados 
+# Define o caminho do arquivo e adiciona o banco de dados
+# Enrico 
+# 07/04
+caminho_arquivo <- "C:/Users/borbo/OneDrive/Área de Trabalho/dengue-dataset.csv"
 dados <- read.csv(caminho_arquivo, sep = ',', dec = '.', header = TRUE,
                   fileEncoding = "latin1")
 
-
-names(dados)
-
-# Função Cálculo de Moda 
-moda_multiplas <- function(v) {
-  v <- na.omit(v)  # remove NAs
-  tab <- table(v)  # conta frequência
-  modas <- names(tab[tab == max(tab)])
-  return(modas)
-}
-
-# Descrição Chuva
-media_chuva <- mean(dados$chuva, na.rm = TRUE)
-cat("A média de chuva por mês é ", media_chuva, "milímetros")
-mediana_chuva <- median(dados$chuva, na.rm = TRUE)
-cat("A mediana de chuva por mês é ", mediana_chuva, "milímetros")
-moda_chuva <- moda_multiplas(dados$chuva)
-cat("A moda de chuva é ", moda_chuva, "milímetros")
-var_chuva <- var(dados$chuva, na.rm = TRUE)
-cat("A variância da chuva por mês é", var_chuva, "milímetros")
-sd_chuva <- sd(dados$chuva, na.rm = TRUE)
-cat("O desvio padrão é", sd_chuva)
-
-# Descrição Casos Confirmados
-
-media_casos <- mean(dados$casos.confirmados, na.rm = TRUE)
-cat("A média de casos confirmados por mês é ", media_casos)
-mediana_casos <- median(dados$casos.confirmados, na.rm = TRUE)
-cat("A mediana de casos confirmados por mês é ", mediana_casos)
-moda_casos <- moda_multiplas(dados$casos.confirmados)
-cat("A moda de casos confirmados é", moda_casos)
-var_casos <- var(dados$casos.confirmados, na.rm = TRUE)
-cat("A variância de casos por mês é", var_casos)
-sd_casos <- sd(dados$casos.confirmados, na.rm = TRUE)
-cat("O desvio padrão é", sd_casos)
-
-# Descrição Média de Temperatura
-media_temperatura <- mean(dados$temperatura.media, na.rm = TRUE)
-cat("A média da média de temperatura por mês é ", media_temperatura, "ºC")
-mediana_temperatura <- median(dados$temperatura.media, na.rm = TRUE)
-cat("A mediana de temperatura média por mês é ", mediana_temperatura, "ºC")
-moda_temperatura <- moda_multiplas(dados$temperatura.media)
-cat("A moda de temperatura média é", moda_temperatura, "ºC")
-var_temperatura <- var(dados$temperatura.media, na.rm = TRUE)
-cat("A variância da temperatura por mês é", var_temperatura, "milímetros")
-sd_temperatura <- sd(dados$temperatura.media, na.rm = TRUE)
-cat("O desvio padrão é", sd_temperatura)
-
+# Estatística Descritiva
+# Descreve os valores das variáveis do banco de dados
+# Enrico
+# 07/04
 summary(dados)
 
 #--------------------------#
 # TABELAS E GRÁFICOS
 
+
+# Código para gráfico de Casos Confirmados e Temperatura
+# Cria um gráfico com os casos confirmados de dengue em função da temperatura média
+# Enrico
+# 07/04
 library(dplyr)
-library(lubridate)
-
-# Criar a coluna de mês
-dados$mes <- month(dados$data, label = TRUE, abbr = TRUE)
-
-# Criar tabela de frequência entre mês e casos confirmados
-tabela_freq_mensal <- dados %>%
-  group_by(mes) %>%
-  summarise(total_casos = sum(casos.confirmados, na.rm = TRUE)) %>%
-  arrange(mes) %>%
-  mutate(porcentagem = (total_casos / sum(total_casos)) * 100)
-
-# Visualizar a tabela
-print(tabela_freq_mensal)
-View(tabela_freq_mensal)
-
-
 library(ggplot2)
 
-# Gráfico de barras
-ggplot(tabela_freq_mensal, aes(x = mes, y = total_casos)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  labs(
-    title = "Total de Casos Confirmados por Mês",
-    x = "Mês",
-    y = "Casos Confirmados"
-  ) +
-  theme_minimal()
-
-# Verificar o valor mínimo e máximo da temperatura média
-min(dados$temperatura.media, na.rm = TRUE)
-max(dados$temperatura.media, na.rm = TRUE)
-
-# Ajustando os intervalos com base no valor mínimo e máximo da temperatura média
-temp_min <- min(dados$temperatura.media, na.rm = TRUE)
-temp_max <- max(dados$temperatura.media, na.rm = TRUE)
-
-# Definir o número de intervalos que você deseja
-num_intervals <- 10  # Exemplo: 10 intervalos
-
-# Criar intervalos com base no mínimo e máximo das temperaturas
-intervalos <- seq(temp_min, temp_max, length.out = num_intervals + 1)
-
-# Criar a coluna de faixas de temperatura
-dados$faixa_temperatura <- cut(dados$temperatura.media, 
-                               breaks = intervalos, 
-                               include.lowest = TRUE, 
-                               labels = paste(head(intervalos, -1), tail(intervalos, -1), sep = "-"))
-
-# Tabela de frequência por faixa de temperatura
+dados <- dados %>%
+  filter(!is.na(temperatura.media))
+largura_faixa <- 1.0
+temp_min <- floor(min(dados$temperatura.media))
+temp_max <- ceiling(max(dados$temperatura.media))
+intervalos_temp <- seq(temp_min, temp_max, by = largura_faixa)
+dados$faixa_temperatura <- cut(
+  dados$temperatura.media,
+  breaks = intervalos_temp,
+  include.lowest = TRUE,
+  labels = paste0(
+    head(intervalos_temp, -1), " - ",
+    tail(intervalos_temp, -1)
+  )
+)
 tabela_freq_faixa_temperatura <- dados %>%
   group_by(faixa_temperatura) %>%
   summarise(total_casos = sum(casos.confirmados, na.rm = TRUE)) %>%
   arrange(faixa_temperatura)
-
-# Exibindo a tabela
-print(tabela_freq_faixa_temperatura)
-View(tabela_freq_faixa_temperatura)
-
-library(ggplot2)
-
-# Gráfico de barras com a tabela de frequência por faixa de temperatura
 ggplot(tabela_freq_faixa_temperatura, aes(x = faixa_temperatura, y = total_casos)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_bar(stat = "identity", fill = "lightblue") +
   labs(
-    title = "Total de Casos Confirmados por Faixa de Temperatura",
+    title = "Casos Confirmados por Faixa de Temperatura",
     x = "Faixa de Temperatura (°C)",
-    y = "Total de Casos Confirmados"
+    y = "Casos Confirmados"
   ) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-# Verificar os valores mínimo e máximo de chuva
-chuva_min <- min(dados$chuva, na.rm = TRUE)
-chuva_max <- max(dados$chuva, na.rm = TRUE)
-
-# Definir intervalos (ex: 20)
-num_intervals_chuva <- 20
-
-# Criar intervalos e faixas
-intervalos_chuva <- seq(chuva_min, chuva_max, length.out = num_intervals_chuva + 1)
-
-dados$faixa_chuva <- cut(dados$chuva,
-                         breaks = intervalos_chuva,
-                         include.lowest = TRUE,
-                         labels = paste0(round(head(intervalos_chuva, -1), 1), 
-                                         "-", 
-                                         round(tail(intervalos_chuva, -1), 1)))
-
-# Calcular a tabela de frequência
+# Código para gráfico de Casos Confirmados e Quantidade de chuva
+# Cria um gráfico com os casos confirmados de dengue em função da quantidade de chuva em milímetros
+# Enrico
+# 07/04 
+dados <- dados %>%
+  filter(!is.na(chuva))
+largura_faixa <- 50
+chuva_min <- floor(min(dados$chuva))
+chuva_max <- ceiling(max(dados$chuva))
+intervalos_chuva <- seq(chuva_min, chuva_max, by = largura_faixa)
+dados$faixa_chuva <- cut(
+  dados$chuva,
+  breaks = intervalos_chuva,
+  include.lowest = TRUE,
+  labels = paste0(
+    head(intervalos_chuva, -1), " - ",
+    tail(intervalos_chuva, -1)
+  )
+)
 tabela_freq_faixa_chuva <- dados %>%
   group_by(faixa_chuva) %>%
   summarise(total_casos = sum(casos.confirmados, na.rm = TRUE)) %>%
   arrange(faixa_chuva)
-
-# Visualizar
-View(tabela_freq_faixa_chuva)
-
-
-# Gráfico de barras da frequência de casos por faixa de chuva
 ggplot(tabela_freq_faixa_chuva, aes(x = faixa_chuva, y = total_casos)) +
-  geom_bar(stat = "identity", fill = "darkseagreen4") +
+  geom_bar(stat = "identity", fill = "lightgreen") +
   labs(
-    title = "Total de Casos Confirmados por Faixa de Chuva",
-    x = "Faixa de Chuva (mm)",
+    title = "Total de Casos Confirmados por Quantidade de Chuva",
+    x = "Quantidade de Chuva (mm)",
     y = "Total de Casos Confirmados"
   ) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-#---------------------------#
-# ANÁLISE DOS DIFERENTES GRUPOS
 
-# Correlação entre Temperatura média e Casos de Dengue
-cor.test(dados$temperatura.media, dados$casos.confirmados, method = "pearson")
-# Correlação de Pearson entre temperatura média e casos de dengue mostrou que não há uma correlação linear entre essas duas variáveis
-# p-valor = 0.5588, corr = 0.041
+# Código para gerar um gráfico de média de casos por mês
+# Cria um gráfico com os casos confirmados de dengue em função dos meses do ano
+# Mari e Isabela
+# 11/04
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(scales)
+library(lubridate)
+dados <- dados %>%
+  mutate(
+    date  = ymd(data), 
+    mes = month(date, label = TRUE, abbr = TRUE)  # Meses como fator abreviado
+  )
+dados_agrupados <- dados %>%
+  group_by(mes) %>%
+  summarise(media_casos = mean(casos.confirmados, na.rm = TRUE))
+ggplot(dados_agrupados, aes(x = mes, y = media_casos)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(
+    title = "Média de Casos Confirmados por Mês",
+    x = "Mês",
+    y = "Média de Casos Confirmados"
+  ) +
+  theme_minimal()
 
-#------------#
-# Correlação entre Quantidade de Chuva e Casos de Dengue
-cor.test(dados$chuva, dados$casos.confirmados, method = "pearson")
-#Correlação de Pearson entre quantidade de chuva e casos de dengue mostrou que não há uma correlação linear entre essas duas variáveis
-# p-valor = 0.2435, corr = - 0.083
+# Código para gerar um gráfico com as variáveis casos confirmados, temp. média e quant. chuva
+# Cria um gráfico mostrando a relação das três variáveis de interesse
+# Mari
+# 11/04
 
-#------------#
-# Correlação de Spearman entre Temperatura Média e Casos de Dengue
-cor.test(dados$temperatura.media, dados$casos.confirmados, method = "spearman", exact = FALSE)
-# Há uma correlação positiva fraca (rho = 0.197) entre Temp Média e Casos de Dengue, 
-# p-valor = 0.0045, essa correlação é significativamente estatística
+dados_medias <- dados %>%
+  group_by(mes) %>%
+  summarise(
+    Casos = mean(casos.confirmados, na.rm = TRUE),
+    Temperatura = mean(temperatura.media, na.rm = TRUE),
+    Chuva = mean(chuva, na.rm = TRUE)
+  ) %>%
+  pivot_longer(
+    cols = -mes,
+    names_to = "Variavel",
+    values_to = "Valor"
+  )
+ggplot(dados_medias, aes(x = mes, y = Valor, color = Variavel, group = Variavel)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  scale_y_continuous(
+    name = "Casos Confirmados e Temperatura Média",
+    sec.axis = sec_axis(~ . * 1, name = "Chuva Média (mm)") 
+  ) +
+  scale_color_manual(
+    values = c("Casos" = "#e63946", "Temperatura" = "#1d3557", "Chuva" = "#457b9d")
+  ) +
+  labs(
+    title = "Relação Mensal entre Casos Confirmados, Temperatura e Chuva",
+    subtitle = "Médias mensais comparadas",
+    x = "Mês",
+    color = "Variável"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "top",
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
 
-#------------#
-# Correlação de Spearman entre Quantidade de Chuva e Casos de Dengue
-cor.test(dados$chuva, dados$casos.confirmados, method = "spearman", exact = FALSE)
-# Não há correlação entre essas duas variáveis (rho = 0.042), e p-valor = 0.552, corroborando a hipótese nula
+# Código para gerar três gráficos separados
+# Cria três gráficos mostrando a média de cada variável ao longo dos meses
+# Mari
+# 11/04
+ggplot(dados_medias, aes(x = mes, y = Valor, color = Variavel)) +
+  geom_line(size = 1) +
+  geom_point() +
+  facet_wrap(~Variavel, scales = "free_y", ncol = 1) +  
+  theme_minimal()
 
 
-#------------#
-# Regressão Binomial Negativa
-library(MASS)
-modelo_nb <- glm.nb(casos.confirmados ~ temperatura.media + chuva, data = dados)
-summary(modelo_nb)
-# Mantendo a chuva constante, um aumento de 1 grau de temperatura está associado com um 
-# aumento de 31% nos casos de dengue, p-valor = 0.000067 
+# Código para gerar uma tabela descritiva
+# Cria uma tabela contendo todas os valores de interesse (média, dp, mediana etc)
+# Isabela
+# 12/04
+library(psych)
+library(gt)
+library(dplyr)
+vars <- c("chuva", "temperatura.media", "temperatura.mininima", "temperatura.maxima", "casos.confirmados")
+estat <- describe(dados[, vars])
+variancias <- sapply(dados[, vars], var, na.rm = TRUE) %>% round(2)
+estat_df <- estat %>%
+  select(n, mean, sd, min, median, max) %>%
+  round(2) %>%
+  mutate(
+    Variância = variancias,
+    Variável = rownames(.)
+  ) %>%
+  select(Variável, n, mean, Variância, sd, min, median, max) %>%
+  rename(
+    Amostras = n,
+    Média = mean,
+    Desvio_Padrao = sd,
+    Mínimo = min,
+    Mediana = median,
+    Máximo = max
+  ) %>%
+  mutate(
+    Variável = recode(Variável,
+                      "chuva" = "Chuva (mm)",
+                      "temperatura.media" = "Temperatura Média (°C)",
+                      "temperatura.mininima" = "Temperatura Mínima (°C)",
+                      "temperatura.maxima" = "Temperatura Máxima (°C)",
+                      "casos.confirmados" = "Casos Confirmados"
+    )
+  )
+gt(estat_df) %>%
+  tab_header(
+    title = "Estatística Descritiva das Variáveis"
+  )
 
-#------------#
-# Comparando as temperaturas médias (alta, média e baixa) e os casos de dengue
+#--------------------------#
+# ANÁLISES ESTATÍSTICAS
+
+# Código para verificar normalidade das variáveis
+# Utiliza o teste Shapiro-Wilk para verificar se as variáveis se distribuem de maneira normal
+# Enrico e André
+# 17/04
+# Normalidade da chuva:
+shapiro.test(dados$chuva)
+ggplot(dados, aes(sample = chuva)) +
+  stat_qq(color = "blue") +
+  stat_qq_line(color = "red") +
+  labs(title = "Q-Q Plot da Chuva", x = "Quantis Teóricos", y = "Quantis Amostrais")
+ggplot(dados, aes(x = chuva)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "lightblue", color = "black") +
+  stat_function(fun = dnorm, args = list(mean = mean(dados$chuva), sd = sd(dados$chuva)), color = "red") +
+  labs(title = "Histograma da Chuva com Curva Normal", x = "Precipitação (mm)", y = "Densidade")
+# Chuva não varia normalmente p<<0.05
+
+#Normalidade da Temperatura Média
+shapiro.test(dados$temperatura.media)
+ggplot(dados, aes(x = temperatura.media)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "lightblue", color = "black") +
+  stat_function(fun = dnorm, args = list(mean = mean(dados$temperatura.media), sd = sd(dados$temperatura.media)), color = "red") +
+  labs(title = "Histograma da Temperatura Média", x = "Temperatura", y = "Densidade")
+ggplot(dados, aes(sample = temperatura.media)) +
+  stat_qq(color = "blue") +
+  stat_qq_line(color = "red") +
+  labs(title = "Q-Q Plot da Temp Média", x = "Quantis Teóricos", y = "Quantis Amostrais")
+# Temperatura média não varia normalmente p<<0.05
+
+# Normalidade do número de casos
+shapiro.test(dados$casos.confirmados)
+ggplot(dados, aes(x = casos.confirmados)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "lightblue", color = "black") +
+  stat_function(fun = dnorm, args = list(mean = mean(dados$casos.confirmados), sd = sd(dados$casos.confirmados)), color = "red") +
+  labs(title = "Histograma dos Casos Confirmados com Curva Normal", x = "Num. de Casos", y = "Densidade")
+ggplot(dados, aes(sample = casos.confirmados)) +
+  stat_qq(color = "blue") +
+  stat_qq_line(color = "red") +
+  labs(title = "Q-Q Plot do Num. Casos", x = "Quantis Teóricos", y = "Quantis Amostrais")
+# Número de casos não varia normalmente p<<0.05
+
+library(car)
+# Verificação normalidade variancias, usando center = median para compensar por outliers
+leveneTest(casos.confirmados ~ mes, data = dados, center=median)
+# Variâncias são homogêneas
+
+leveneTest(chuva ~ mes, data = dados, center=median)
+# Variâncias não são homogêneas
+
+leveneTest(temperatura.media ~ mes, data = dados, center=median)
+# Variâncias são homogêneas
+
+# Usando Teste de Kruskal, pois distribuição não é normal
+kruskal.test(casos.confirmados ~ mes, data = dados)
 
 library(FSA)
-# Dividindo a temperatura em 3 faixas
-dados$temp_cat <- cut(dados$temperatura.media, breaks = 3, labels = c("baixa", "média", "alta"))
+# Gráfico de casos confirmados por mês
+boxplot(casos.confirmados ~ mes, data = dados, col = "lightblue", main = "Casos confirmados por mês")
 
-# Para dados que não são distribuídos normalmente
-kruskal.test(casos.confirmados ~ temp_cat, data = dados)
+kruskal.test(casos.confirmados ~ chuva, data = dados)
+kruskal.test(casos.confirmados ~ temperatura.media, data = dados)
 
-# Teste de Dunn com correção de Bonferroni
-dunnTest(casos.confirmados ~ temp_cat, data = dados, method = "bonferroni")
-# Diferença significativa entre temperatura média e temperatura alta (p-valor = 0.0228)
-# Tendência de diferença entre temperatura baixa e alta (p-valor = 0.0558)
-# Nenhuma diferença entre temperatura média e baixa
+# Teste de Correlação de Spearman Para Chuva e Casos Confirmados
+cor.test(dados$chuva, dados$casos.confirmados, method = "spearman")
+ggplot(dados, aes(x = chuva, y = casos.confirmados)) +
+  geom_point() +
+  geom_smooth(method = "loess", se = TRUE) +
+  labs(title = "Relação entre Chuva e Casos de Dengue")
+# Não há correlação entre a quantidade de casos confirmados e a precipitação
 
-# Dividindo a chuva em 3 faixas
-dados$chuva_cat <- cut(dados$chuva, breaks = 3, labels = c("baixa", "média", "alta"))
-kruskal.test(casos.confirmados ~ chuva_cat, data = dados)
-# Teste de Dunn com correção de Bonferroni
-dunnTest(casos.confirmados ~ chuva_cat, data = dados, method = "bonferroni")
-# Não há diferença significativa entre os grupos de chuva 
+# Teste de Correlação de Spearman Para Temperatura Média e Casos Confirmados
+cor.test(dados$temperatura.media, dados$casos.confirmados, method = "spearman")
+ggplot(dados, aes(x = temperatura.media, y = casos.confirmados)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "loess", color = "red") +
+  labs(title = "Relação entre Temperatura Média e Casos de Dengue",
+       x = "Temperatura Média (°C)", y = "Casos Confirmados")
+# Há uma relação entre a temperatura média e os casos de dengue, mas ela é fraca:
+# a temperatura explica apenas 3.9% da variância dos casos (0.19^2)
+
+# Teste de Correlação de Spearman com atraso de 1 mês
+dados$temp_lag <- lag(dados$temperatura.media, 1) 
+cor.test(dados$temp_lag, dados$casos.confirmados, method = "spearman")
+library(ggplot2)
+ggplot(dados, aes(x = temp_lag, y = casos.confirmados)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "loess", color = "red") +
+  labs(title = "Relação entre Temperatura Defasada e Casos de Dengue",
+       x = "Temperatura Média (Lag)", y = "Casos Confirmados")
+# Quando adicionamos um atraso de 1 mês, observamos uma correlação mais forte,
+# com a temperatura explicando 21% da variação dos casos de dengue
+# e se adicionarmos um atraso de 2 meses, essa correlação é ainda maior.
+dados$temp_lag <- lag(dados$temperatura.media, 2) 
+cor.test(dados$temp_lag, dados$casos.confirmados, method = "spearman")
+# rho = 0.59, temperatura explica 35% da variação dos casos de dengue
 
 
+# Usando Regressão Binomial Negativa, pois variância >> média
 
+# Temperatura direta
+library(MASS)
+modelo_nb <- glm.nb(casos.confirmados ~ temperatura.media, data = dados)
+summary(modelo_nb)
+# Para cada aumento de 1ºC na temperatura, há um aumento no número
+# de casos em 12%, todavia, p-valor = 0.0596, podemos afirmar apenas uma tendência
 
-
-
-
-
+# Temperatura defasada em 1 mês
+dados$temp_lag <- lag(dados$temperatura.media, 1)
+modelo_nb <- glm.nb(casos.confirmados ~ temp_lag, data = dados)
+summary(modelo_nb)
+# Para cada aumento de 1ºC na temperatura defasada por 1 mês, há um aumento 
+#no número de casos em 72%, p-valor < 0.001
+library(ggeffects)
+predicoes <- ggpredict(modelo_nb, terms = "temp_lag [all]")
+plot(predicoes) + 
+  labs(title = "Efeito da Temperatura Defasada nos Casos de Dengue",
+       x = "Temperatura Defasada (°C)", y = "Casos Previstos")
 
