@@ -2,19 +2,18 @@
 
 
 # Instalando Pacotes
-install.packages("dplyr")
-install.packages("lubridate")
-install.packages("ggplot2")
-install.packages("MASS")
-install.packages("FSA")
-install.packages("tidyr")
-install.packages("scales")
-install.packages("car")
-install.packages("RVAideMemoire")
-install.packages("ggpubr")
-install.packages("ggeffects")
-install.packages("psych")
-install.packages("gt")
+
+using<-function(...) {
+    libs<-unlist(list(...))
+    req<-unlist(lapply(libs,require,character.only=TRUE))
+    need<-libs[req==FALSE]
+    if(length(need)>0){ 
+        install.packages(need)
+        lapply(need,require,character.only=TRUE)
+    }
+}
+
+using("dplyr","lubridate","ggplot2","MASS","FSA","tidyr","scales","car","RVAideMemoire","ggpubr","ggeffects","psych","gt")
 
 # Adicionando banco de dados 
 # Define o caminho do arquivo e adiciona o banco de dados
