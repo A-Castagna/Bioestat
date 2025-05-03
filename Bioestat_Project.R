@@ -341,3 +341,38 @@ plot(predicoes) +
   labs(title = "Efeito da Temperatura Defasada nos Casos de Dengue",
        x = "Temperatura Defasada (°C)", y = "Casos Previstos")
 
+
+# Teste de Kruskal-Wallis
+# Faz o teste de Kruskal-Wallis, comparando casos confirmados e mês,
+# usamos esse, pois as suposições da ANOVA não foram cumpridas. Também cria uma tabela com 
+# as comparações que apresentam diferença significativa. 
+# Enrico
+# 01/05
+library(FSA)
+library(dplyr)
+library(gt)
+kruskal.test(casos.confirmados ~ mes, data = dados)
+dunn_result <- dunnTest(casos.confirmados ~ mes, data = dados, method = "bonferroni")
+pares_significativos <- dunn_result$res %>%
+  filter(P.adj < 0.05) %>%
+  mutate(
+    Z = round(Z, 2),
+    P.adj = signif(P.adj, 3)
+  ) %>%
+  select(Comparison, Z, P.adj)  
+gt(pares_significativos) %>%
+  tab_header(
+    title = "Comparações Significativas (Teste de Dunn)",
+    subtitle = "Ajuste de Bonferroni, p < 0,05"
+  ) %>%
+  cols_label(
+    Comparison = "Comparação",
+    Z = "Estatística Z",
+    P.adj = "p ajustado"
+  ) %>%
+  fmt_number(columns = Z, decimals = 2) %>%
+  fmt_number(columns = P.adj, decimals = 3) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(rows = P.adj < 0.05)
+  
