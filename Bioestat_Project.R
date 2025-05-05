@@ -292,6 +292,13 @@ ggplot(dados, aes(x = chuva, y = casos.confirmados)) +
   geom_smooth(method = "loess", se = TRUE) +
   labs(title = "Relação entre Chuva e Casos de Dengue")
 # Não há correlação entre a quantidade de casos confirmados e a precipitação
+# Teste de Correlação de Spearman com atraso de 1 mês
+dados$chuva_lag <- lag(dados$chuva, 1) 
+cor.test(dados$chuva_lag, dados$casos.confirmados, method = "spearman")
+# Teste de Correlação de Spearman com atraso de 2 meses
+dados$chuva_lag <- lag(dados$chuva, 2) 
+cor.test(dados$chuva_lag, dados$casos.confirmados, method = "spearman")
+# Quando adicionamos o lag, observa-se uma correlação significativa de moderada a forte nos dados.
 
 # Teste de Correlação de Spearman Para Temperatura Média e Casos Confirmados
 cor.test(dados$temperatura.media, dados$casos.confirmados, method = "spearman")
